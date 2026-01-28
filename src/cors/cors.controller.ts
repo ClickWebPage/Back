@@ -1,6 +1,6 @@
 // src/cors/cors.controller.ts
 import { Controller, Get, Req, Res, Header } from '@nestjs/common';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 
 @Controller('cors')
 export class CorsController {
@@ -22,7 +22,7 @@ export class CorsController {
   checkHeaders() {
     return {
       message: 'Check headers in browser devtools',
-      note: 'Look for X-Custom-Header in response headers'
+      note: 'Look for X-Custom-Header in response headers',
     };
   }
 }
