@@ -1,0 +1,361 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+enum EstadoPedido {
+  PENDIENTE
+  EN_TRAMITE
+  ATENDIDO
+  CANCELADO
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+}
+
+// enum TicketStatus {
+//   OPEN
+//   IN_PROGRESS
+//   RESOLVED
+//   CLOSED
+// }
+
+// model ServiceTicket {
+//   id              String       @id @default(cuid())
+//   trackingId      String       @unique // Ejemplo: ST-7241
+//   customerName    String
+//   customerPhone   String
+//   customerEmail   String?
+//   deviceBrand     String       // Ej: Asus, Dell
+//   deviceModel     String       // Ej: Vivobook 15
+//   serialNumber    String?
+//   issueDescription String
+//   technicalNotes  String?      // Solo para el técnico
+//   status          TicketStatus @default(OPEN)
+//   estimatedCost   Float?       @default(0)
+//   createdAt       DateTime     @default(now())
+//   updatedAt       DateTime     @updatedAt
+
+//   // Si quieres vincularlo a un usuario registrado opcionalmente
+//   // userId       String?
+//   // user         User?        @relation(fields: [userId], references: [id])
+// }
+model User {
+  id                Int       @id @default(autoincrement())
+  nombre            String
+  apellido          String
+  username          String    @unique
+  email             String    @unique
+  password          String
+  telefono          String?
+  direccion         String?
+  rol               String    @default("cliente")
+  refresh_token     String?
+  intentos_fallidos Int       @default(0)
+  bloqueado_hasta   DateTime?
+  ultimo_acceso     DateTime?
+  fecha_creacion    DateTime  @default(now())
+  fecha_actualizacion DateTime  @updatedAt
+
+  orders            Order[]
+  serviceOrders     ServiceOrder[]
+  workOrders        WorkOrder[]
+  permisosTemporales PermisoTemporal[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("usuarios")
+}
+
+model Product {
+  id             Int     @id @default(autoincrement())
+  nombre_producto String
+  descripcion     String
+  precio          Float
+  stock           Int
+  imagen_url      String
+  marca           String?
+  color           String?
+  categoria       String?  // Agregar campo categoría
+  subcategoria    String?  // Agregar subcategoría opcional
+  modelo          String?  // Modelo del producto
+  sku             String?  @unique // SKU único del producto
+  especificaciones String? @db.Text // Especificaciones técnicas
+  garantia        String?  // Información de garantía
+  activo          Boolean @default(true) // Si el producto está activo
+  destacado       Boolean @default(false) // Si es producto destacado
+  fecha_creacion  DateTime @default(now())
+  fecha_actualizacion DateTime @updatedAt
+  erpId           String? @unique // Mantener para futura integración ERP
+
+  serviceOrders   ServiceOrder[]
+  productImages   ProductImage[]
+  banners         Banner[]
+  promotions      Promotion[]
+
+  @@map("productos")
+  @@index([categoria])
+  @@index([marca])
+  @@index([activo])
+  @@index([destacado])
+}
+
+model Banner {
+  id          Int      @id @default(autoincrement())
+  titulo      String
+  imagen_url  String
+  producto_id Int?     @map("producto_id")
+  producto    Product? @relation(fields: [producto_id], references: [id], onDelete: SetNull)
+
+  @@map("banners")
+  @@index([producto_id])
+}
+
+model Order {
+  id               Int          @id @default(autoincrement())
+  codigo           String       @unique
+  userId           Int
+  user             User         @relation(fields: [userId], references: [id])
+
+  totalItems       Int
+  subtotal         Float
+  descuento        Float        @default(0)
+  total            Float
+
+  status           OrderStatus  @default(PENDING)
+  estado_gestion   EstadoPedido @default(PENDIENTE)
+  vendedor_id      Int?
+  vendedor_nombre  String?
+  
+  paymentMethod    PaymentMethod
+  paymentRef       String?
+
+  nombre_cliente   String
+  email_cliente    String
+  telefono         String?
+  direccion_envio  String
+
+  observaciones    String?
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  items            OrderItem[]
+
+  @@map("ordenes")
+  @@index([vendedor_id])
+  @@index([estado_gestion])
+}
+
+model OrderItem {
+  id         Int    @id @default(autoincrement())
+  orderId    Int
+  order      Order  @relation(fields: [orderId], references: [id])
+
+  productId  Int
+  nombre     String
+  precio     Float
+  cantidad   Int
+  total      Float
+
+  @@map("orden_items")
+}
+
+enum ServiceOrderStatus {
+  PENDIENTE
+  EN_PROCESO
+  COMPLETADO
+  CANCELADO
+}
+
+enum WorkOrderStatus {
+  EN_ESPERA
+  EN_REVISION
+  REPARADO
+  ENTREGADO
+  SIN_REPARACION
+  CANCELADO
+}
+
+model ServiceOrder {
+  id                  Int                @id @default(autoincrement())
+  userId              Int
+  productId           Int?
+  descripcion_problema String
+  estado_equipo       String?
+  numero_serie        String?
+  estado              ServiceOrderStatus @default(PENDIENTE)
+  fecha_creacion      DateTime           @default(now())
+  fecha_actualizacion DateTime           @updatedAt
+
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product             Product?           @relation(fields: [productId], references: [id])
+
+  @@map("ordenes_servicio")
+}
+
+model WorkOrder {
+  id                   Int              @id @default(autoincrement())
+  trackingId           String           @unique // Ejemplo: WO-7241
+  cliente_nombre       String
+  cliente_telefono     String
+  cliente_email        String?
+  marca_equipo         String           // Ej: Asus, Dell
+  modelo_equipo        String           // Ej: Vivobook 15
+  numero_serie         String?
+  descripcion_problema String           @db.Text
+  notas_tecnicas       String?          @db.Text  // Solo para el técnico
+  estado               WorkOrderStatus  @default(EN_ESPERA)
+  costo_estimado       Float?           @default(0)
+  costo_final          Float?
+  tecnico_id           Int?
+  tecnico_nombre       String?
+  fecha_creacion       DateTime         @default(now())
+  fecha_actualizacion  DateTime         @updatedAt
+  fecha_entrega        DateTime?
+
+  // Relación opcional con usuario registrado
+  userId               Int?
+  user                 User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("ordenes_trabajo")
+  @@index([trackingId])
+  @@index([estado])
+  @@index([tecnico_id])
+  @@index([fecha_creacion])
+}
+
+model SyncLog {
+  id          Int      @id @default(autoincrement())
+  entityName  String   @unique
+  lastSync    DateTime
+  status      String
+  updatedAt   DateTime @updatedAt
+}
+
+model ProductImage {
+  id                 Int      @id @default(autoincrement())
+  producto_id        Int
+  ruta_imagen        String   @db.VarChar(500)
+  nombre_archivo     String?  @db.VarChar(255)
+  tipo_archivo       String?  @db.VarChar(50)
+  tamano_archivo     Int?
+  es_principal       Boolean  @default(false)
+  orden              Int      @default(0)
+  version_optimizada Boolean  @default(false)
+  fecha_subida       DateTime @default(now())
+  
+  producto           Product  @relation(fields: [producto_id], references: [id], onDelete: Cascade)
+  
+  @@map("imagenes")
+  @@index([producto_id])
+  @@index([es_principal])
+  @@index([orden])
+}
+
+model Promotion {
+  id                Int      @id @default(autoincrement())
+  producto_id       Int
+  porcentaje_descuento Float
+  fecha_inicio      DateTime
+  fecha_fin         DateTime
+  activa            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  producto          Product  @relation(fields: [producto_id], references: [id], onDelete: Cascade)
+  
+  @@map("promociones")
+  @@index([producto_id])
+  @@index([activa])
+  @@index([fecha_inicio, fecha_fin])
+}
+
+model SiteConfig {
+  id         Int      @id @default(autoincrement())
+  clave      String   @unique
+  valor      String
+  updatedAt  DateTime @updatedAt
+  
+  @@map("configuracion_sitio")
+}
+
+model PermisoTemporal {
+  id              Int      @id @default(autoincrement())
+  user_id         Int
+  tipo_permiso    String   // 'banners', 'promociones', 'logo', 'all'
+  fecha_inicio    DateTime @default(now())
+  fecha_expiracion DateTime
+  activo          Boolean  @default(true)
+  otorgado_por    String?  // username del admin que otorgó el permiso
+  razon           String?  // razón del permiso temporal
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  usuario         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@map("permisos_temporales")
+  @@index([user_id])
+  @@index([activo])
+  @@index([fecha_expiracion])
+}
+
+enum NotificationType {
+  NUEVO_PEDIDO
+  PEDIDO_ACTUALIZADO
+  PEDIDO_CANCELADO
+  PEDIDO_COMPLETADO
+}
+
+model Notification {
+  id              Int      @id @default(autoincrement())
+  tipo            NotificationType
+  titulo          String
+  mensaje         String   @db.Text
+  orderId         Int?
+  orderCodigo     String?
+  destinatarios   String[] // roles: ['admin', 'vendedor']
+  leido_por       Int[]    @default([]) // IDs de usuarios que han leído
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("notificaciones")
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id                Int      @id @default(autoincrement())
+  token             String   @unique
+  usuario_id        Int
+  usado             Boolean  @default(false)
+  fecha_creacion    DateTime @default(now())
+  fecha_expiracion  DateTime
+  ip_address        String?  // IP desde donde se solicitó
+  user_agent        String?  // Navegador/dispositivo
+  
+  usuario           User     @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  
+  @@map("password_reset_tokens")
+  @@index([token])
+  @@index([usuario_id])
+  @@index([usado])
+  @@index([fecha_expiracion])
+}

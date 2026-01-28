@@ -1,0 +1,68 @@
+### Prueba de Registro de Usuario
+POST http://localhost:5000/api/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "Juan",
+  "apellido": "Perez",
+  "username": "juan.perez",
+  "email": "juan.perez@test.com",
+  "password": "PasswordSeguro123!",
+  "telefono": "5512345678",
+  "direccion": "Calle de Prueba 123"
+}
+
+###############################################
+### PRODUCTOS - Verificar Seed
+###############################################
+
+### Obtener todos los productos
+GET http://localhost:5000/api/tienda/productos
+
+### Obtener productos por categoria - Laptops
+GET http://localhost:5000/api/tienda/productos?categoria=Laptops
+
+### Obtener productos por categoria - Componentes
+GET http://localhost:5000/api/tienda/productos?categoria=Componentes
+
+### Obtener productos por categoria - Perifericos
+GET http://localhost:5000/api/tienda/productos?categoria=Perifericos
+
+### Obtener productos por categoria - Almacenamiento
+GET http://localhost:5000/api/tienda/productos?categoria=Almacenamiento
+
+### Obtener productos por categoria - Redes
+GET http://localhost:5000/api/tienda/productos?categoria=Redes
+
+### Obtener productos por categoria - Audio
+GET http://localhost:5000/api/tienda/productos?categoria=Audio
+
+### Obtener solo productos destacados
+GET http://localhost:5000/api/tienda/productos?destacado=true
+
+### Obtener productos por marca - Dell
+GET http://localhost:5000/api/tienda/productos?marca=Dell
+
+### Obtener productos por marca - Logitech
+GET http://localhost:5000/api/tienda/productos?marca=Logitech
+
+### Obtener productos por rango de precio - Bajo (menor a $100)
+GET http://localhost:5000/api/tienda/productos?priceRange=low
+
+### Obtener productos por rango de precio - Medio ($101-$399)
+GET http://localhost:5000/api/tienda/productos?priceRange=mid
+
+### Obtener productos por rango de precio - Alto ($400+)
+GET http://localhost:5000/api/tienda/productos?priceRange=high
+
+### Buscar productos - gaming
+GET http://localhost:5000/api/tienda/productos?search=gaming
+
+### Buscar productos - SSD
+GET http://localhost:5000/api/tienda/productos?search=ssd
+
+### Filtro combinado - Laptops destacadas
+GET http://localhost:5000/api/tienda/productos?categoria=Laptops&destacado=true
+
+### Filtro combinado - Componentes rango medio
+GET http://localhost:5000/api/tienda/productos?categoria=Componentes&priceRange=mid
