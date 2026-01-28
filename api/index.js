@@ -9,28 +9,50 @@ const createNestServer = async () => {
     app = await NestFactory.create(AppModule);
     
     // Configuración CORS específica para Vercel
-    // IMPORTANTE: Asegúrate de configurar CORS_ORIGIN en las variables de entorno de Vercel
+    // IMPORTANTE: Lista completa de orígenes permitidos
     const allowedOrigins = process.env.CORS_ORIGIN 
       ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-      : ['https://chpc-webpage-front.vercel.app'];
+      : [
+          'https://chpc-webpage-front.vercel.app',
+          'https://frontend-chpc.vercel.app',
+          'https://frontend-chpc.vercel.app', // Dominio principal del frontend
+        ];
+
+    console.log('🔧 CORS Configuración para Vercel:', allowedOrigins);
 
     app.enableCors({
       origin: (origin, callback) => {
         // Permitir requests sin origin (como Postman o servidor a servidor)
-        if (!origin) return callback(null, true);
+        if (!origin) {
+          console.log('✅ Request sin origin permitido');
+          return callback(null, true);
+        }
+        
+        console.log(`🔍 Verificando origin: ${origin}`);
         
         if (allowedOrigins.includes(origin)) {
+          console.log(`✅ Origin permitido: ${origin}`);
           callback(null, true);
         } else {
           console.log(`❌ CORS bloqueado para origen: ${origin}`);
+          console.log(`📝 Orígenes permitidos:`, allowedOrigins);
           callback(new Error('Not allowed by CORS'));
         }
       },
       credentials: true,
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      allowedHeaders: 'Content-Type, Accept, Authorization',
+      allowedHeaders: [
+        'Content-Type', 
+        'Accept', 
+        'Authorization',
+        'X-Requested-With',
+        'Origin',
+        'Cache-Control',
+      ],
       exposedHeaders: 'Content-Range, X-Content-Range',
-      maxAge: 3600,
+      maxAge: 86400, // 24 horas
+      preflightContinue: false,
+      optionsSuccessStatus: 200,
     });
 
     app.setGlobalPrefix('api');

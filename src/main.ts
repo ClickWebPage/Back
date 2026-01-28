@@ -4,17 +4,47 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Configuración CORS limpia y específica
+  // Configuración CORS mejorada con logging
+  const allowedOrigins = [
+    'https://chpc-webpage-front.vercel.app',
+    'https://frontend-chpc.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:4173', // Vite preview
+  ];
+
   app.enableCors({
-    origin: [
-      'https://chpc-webpage-front.vercel.app',
-      'http://localhost:3000', // Para desarrollo local
-    ],
+    origin: function (origin, callback) {
+      // Permitir requests sin origin (como Postman, mobile apps, etc.)
+      if (!origin) return callback(null, true);
+      
+      // Log para debugging
+      console.log(`🔍 CORS Check - Origin: ${origin}`);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        console.log(`✅ CORS Permitido para: ${origin}`);
+        callback(null, true);
+      } else {
+        console.log(`❌ CORS Bloqueado para: ${origin}`);
+        console.log(`📝 Orígenes permitidos:`, allowedOrigins);
+        callback(new Error('Not allowed by CORS'), false);
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Requested-With',
+      'Origin',
+      'Cache-Control',
+      'X-File-Name',
+    ],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    maxAge: 3600, // Cache preflight requests por 1 hora
+    maxAge: 86400, // 24 horas
+    preflightContinue: false,
+    optionsSuccessStatus: 200,
   });
 
   app.setGlobalPrefix('api');
@@ -23,9 +53,10 @@ async function bootstrap() {
   await app.listen(port);
 
   console.log(`✅ Servidor corriendo en puerto ${port}`);
-  console.log(
-    `✅ CORS configurado para: https://chpc-webpage-front.vercel.app`,
-  );
+  console.log(`✅ CORS configurado para:`);
+  console.log(`   - https://chpc-webpage-front.vercel.app`);
+  console.log(`   - https://frontend-chpc.vercel.app`);
+  console.log(`   - Desarrollo local (localhost:3000, localhost:5173)`);
 }
 
 bootstrap();

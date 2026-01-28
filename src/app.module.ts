@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -17,6 +17,7 @@ import { PermisosModule } from './permisos/permisos.module';
 import { ImagesModule } from './images/images.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MailModule } from './mail/mail.module';
+import { CorsMiddleware } from './common/middleware/cors.middleware';
 
 @Module({
   imports: [
@@ -46,4 +47,11 @@ import { MailModule } from './mail/mail.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Aplicar middleware CORS a todas las rutas
+    consumer
+      .apply(CorsMiddleware)
+      .forRoutes('*');
+  }
+}
