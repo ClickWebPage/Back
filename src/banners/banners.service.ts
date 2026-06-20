@@ -16,10 +16,10 @@ export class BannersService {
       include: {
         producto: {
           select: {
-            id: true,
-            nombre_producto: true,
-            precio: true,
-            stock: true,
+            codigo: true,
+            producto: true,
+            costoTotal: true,
+            existenciaTotal: true,
           },
         },
       },
@@ -35,10 +35,10 @@ export class BannersService {
       include: {
         producto: {
           select: {
-            id: true,
-            nombre_producto: true,
-            precio: true,
-            stock: true,
+            codigo: true,
+            producto: true,
+            costoTotal: true,
+            existenciaTotal: true,
           },
         },
       },
@@ -64,10 +64,10 @@ export class BannersService {
       include: {
         producto: {
           select: {
-            id: true,
-            nombre_producto: true,
-            precio: true,
-            stock: true,
+            codigo: true,
+            producto: true,
+            costoTotal: true,
+            existenciaTotal: true,
           },
         },
       },
@@ -93,10 +93,10 @@ export class BannersService {
       include: {
         producto: {
           select: {
-            id: true,
-            nombre_producto: true,
-            precio: true,
-            stock: true,
+            codigo: true,
+            producto: true,
+            costoTotal: true,
+            existenciaTotal: true,
           },
         },
       },

@@ -40,14 +40,14 @@ export class CreateUserAdminDto {
     message:
       'El teléfono solo puede contener números y caracteres: + - ( ) espacio',
   })
-  telefono?: string;
+  telefono?: string | null;
 
   @IsOptional()
   @IsString()
-  @Length(10, 200, {
-    message: 'La dirección debe tener entre 10 y 200 caracteres',
+  @Length(5, 200, {
+    message: 'La dirección debe tener entre 5 y 200 caracteres',
   })
-  direccion?: string;
+  direccion?: string | null;
 
   @IsEnum(Role, {
     message: 'El rol debe ser: administrador, tecnico o vendedor',

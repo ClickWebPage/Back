@@ -7,15 +7,14 @@ export class CorsMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     const origin = req.headers.origin;
     const allowedOrigins = [
-      'https://chpc-webpage-front.vercel.app',
-      'https://frontend-chpc.vercel.app',
       'http://localhost:3000',
       'http://localhost:5173',
       'http://localhost:4173',
+      'http://localhost:8080',
     ];
 
     // Log para debugging
-    console.log(`🔍 Middleware CORS - Method: ${req.method}, Origin: ${origin}`);
+    console.log(`Middleware CORS - Method: ${req.method}, Origin: ${origin}`);
 
     // Configurar headers CORS manualmente como fallback
     if (origin && allowedOrigins.includes(origin)) {
@@ -30,7 +29,7 @@ export class CorsMiddleware implements NestMiddleware {
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header(
       'Access-Control-Allow-Methods',
-      'GET, POST, PUT, DELETE, PATCH, OPTIONS'
+      'GET, POST, PUT, DELETE, PATCH, OPTIONS',
     );
     res.header(
       'Access-Control-Allow-Headers',

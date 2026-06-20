@@ -274,10 +274,19 @@ export class UsersService {
       }
     }
 
+    // Filtrar campos null/undefined para no sobrescribir datos existentes innecesariamente
+    const updateData: any = {};
+    Object.keys(updateUserDto).forEach((key) => {
+      const value = updateUserDto[key as keyof UpdateUserAdminDto];
+      if (value !== null && value !== undefined) {
+        updateData[key] = value;
+      }
+    });
+
     return await this.prisma.user.update({
       where: { id },
       data: {
-        ...updateUserDto,
+        ...updateData,
         fecha_actualizacion: new Date(),
       },
     });
@@ -297,6 +306,26 @@ export class UsersService {
 
     await this.prisma.user.delete({
       where: { id },
+    });
+  }
+
+  /**
+   * Resetear contraseña de un usuario (solo admin)
+   */
+  async resetPasswordByAdmin(id: number, nuevaPassword: string): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const hashedPassword = await bcrypt.hash(nuevaPassword, 10);
+    
+    return await this.prisma.user.update({
+      where: { id },
+      data: {
+        password: hashedPassword,
+        fecha_actualizacion: new Date(),
+      },
     });
   }
 }

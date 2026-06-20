@@ -12,7 +12,7 @@ export class PromotionsService {
 
     // Validar que el producto existe
     const producto = await this.prisma.product.findUnique({
-      where: { id: producto_id },
+      where: { codigo: producto_id },
     });
 
     if (!producto) {
@@ -57,9 +57,9 @@ export class PromotionsService {
       include: {
         producto: {
           select: {
-            id: true,
-            nombre_producto: true,
-            precio: true,
+            codigo: true,
+            producto: true,
+            costoTotal: true,
           },
         },
       },
@@ -71,10 +71,9 @@ export class PromotionsService {
       include: {
         producto: {
           select: {
-            id: true,
-            nombre_producto: true,
-            precio: true,
-            imagen_url: true,
+            codigo: true,
+            producto: true,
+            costoTotal: true,
           },
         },
       },
@@ -95,11 +94,10 @@ export class PromotionsService {
       include: {
         producto: {
           select: {
-            id: true,
-            nombre_producto: true,
-            precio: true,
-            imagen_url: true,
-            descripcion: true,
+            codigo: true,
+            producto: true,
+            costoTotal: true,
+            marca: true,
             productImages: {
               select: {
                 id: true,
@@ -135,10 +133,9 @@ export class PromotionsService {
       include: {
         producto: {
           select: {
-            id: true,
-            nombre_producto: true,
-            precio: true,
-            imagen_url: true,
+            codigo: true,
+            producto: true,
+            costoTotal: true,
           },
         },
       },
@@ -177,9 +174,9 @@ export class PromotionsService {
       include: {
         producto: {
           select: {
-            id: true,
-            nombre_producto: true,
-            precio: true,
+            codigo: true,
+            producto: true,
+            costoTotal: true,
           },
         },
       },

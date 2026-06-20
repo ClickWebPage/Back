@@ -20,7 +20,7 @@ export class ServiceOrdersService {
   ): Promise<ServiceOrder> {
     if (dto.productId) {
       const product = await this.prisma.product.findUnique({
-        where: { id: dto.productId },
+        where: { codigo: dto.productId },
       });
       if (!product) {
         throw new NotFoundException('Producto no encontrado');

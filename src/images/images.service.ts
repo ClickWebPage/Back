@@ -6,24 +6,23 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateImageDto } from './dto/create-image.dto';
 import { UpdateImageDto } from './dto/update-image.dto';
+import type { MulterFile } from '../types/multer.types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
 @Injectable()
 export class ImagesService {
-  constructor(private prisma: PrismaService) {}
+  // Directorio donde se almacenarán las imágenes (configurable por variable de entorno)
+  private readonly uploadDir: string;
 
-  // Directorio donde se almacenarán las imágenes
-  // Desde backend/dist/images -> subir 3 niveles para llegar a frontend-chpc
-  // Luego acceder a public/Productos
-  private readonly uploadDir = path.join(
-    __dirname,
-    '..',
-    '..',
-    '..',
-    'public',
-    'Productos',
-  );
+  constructor(private prisma: PrismaService) {
+    // Usar variable de entorno o directorio por defecto
+    this.uploadDir = process.env.UPLOAD_DIR 
+      ? path.join(process.env.UPLOAD_DIR, 'productos')
+      : path.join(__dirname, '..', '..', '..', 'public', 'Productos');
+    
+    console.log('💾 Directorio de imágenes (ImagesService):', this.uploadDir);
+  }
 
   /**
    * Obtener todas las imágenes de un producto
@@ -57,12 +56,12 @@ export class ImagesService {
   async create(createImageDto: CreateImageDto) {
     // Verificar que el producto existe
     const product = await this.prisma.product.findUnique({
-      where: { id: createImageDto.producto_id },
+      where: { codigo: createImageDto.producto_id },
     });
 
     if (!product) {
       throw new NotFoundException(
-        `Producto con ID ${createImageDto.producto_id} no encontrado`,
+        `Producto con código ${createImageDto.producto_id} no encontrado`,
       );
     }
 
@@ -114,18 +113,13 @@ export class ImagesService {
 
     // Eliminar archivo físico si existe
     try {
-      const filePath = path.join(
-        __dirname,
-        '..',
-        '..',
-        '..',
-        '..',
-        'public',
-        image.ruta_imagen.replace(/^\//, ''),
-      );
+      // Extraer solo el nombre del archivo de la ruta
+      const fileName = path.basename(image.ruta_imagen);
+      const filePath = path.join(this.uploadDir, fileName);
       await fs.unlink(filePath);
+      console.log('✅ Archivo eliminado:', filePath);
     } catch (error) {
-      console.warn(`No se pudo eliminar el archivo físico: ${error.message}`);
+      console.warn(`⚠️ No se pudo eliminar el archivo físico: ${error.message}`);
     }
 
     // Eliminar registro de base de datos
@@ -175,7 +169,7 @@ export class ImagesService {
   /**
    * Guardar archivo subido
    */
-  async saveUploadedFile(file: Express.Multer.File, productId: number) {
+  async saveUploadedFile(file: MulterFile, productId: number) {
     try {
       console.log('=== DEBUG UPLOAD ===');
       console.log('uploadDir:', this.uploadDir);

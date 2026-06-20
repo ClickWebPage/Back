@@ -85,36 +85,53 @@ model User {
 }
 
 model Product {
-  id             Int     @id @default(autoincrement())
-  nombre_producto String
-  descripcion     String
-  precio          Float
-  stock           Int
-  imagen_url      String
-  marca           String?
-  color           String?
-  categoria       String?  // Agregar campo categoría
-  subcategoria    String?  // Agregar subcategoría opcional
-  modelo          String?  // Modelo del producto
-  sku             String?  @unique // SKU único del producto
-  especificaciones String? @db.Text // Especificaciones técnicas
-  garantia        String?  // Información de garantía
-  activo          Boolean @default(true) // Si el producto está activo
-  destacado       Boolean @default(false) // Si es producto destacado
-  fecha_creacion  DateTime @default(now())
-  fecha_actualizacion DateTime @updatedAt
-  erpId           String? @unique // Mantener para futura integración ERP
+  codigo           Int     @id @map("Código")
+  producto         String? @db.VarChar(512) @map("Producto")
+  marca            String? @db.VarChar(512) @map("Marca")
+  medida           String? @db.VarChar(512) @map("Medida")
+  bodega           String? @db.VarChar(512) @map("Bodega")
+  existencia       String? @db.VarChar(512) @map("Existencia")
+  precioA          Float?  @map("Precio A")
+  garantia         String? @db.VarChar(512) @map("Garantia")
+  existenciaTotal  String? @db.VarChar(512) @map("Existencia Total")
+  costoTotal       Float?  @map("Costo Total")
 
   serviceOrders   ServiceOrder[]
   productImages   ProductImage[]
   banners         Banner[]
   promotions      Promotion[]
+  precioUnitario  PrecioUnitario?
 
-  @@map("productos")
-  @@index([categoria])
+  @@map("Product")
   @@index([marca])
-  @@index([activo])
-  @@index([destacado])
+}
+
+model PrecioUnitario {
+  codigo     Int     @id @map("Código")
+  producto   String? @db.VarChar(512) @map("Producto")
+  medida     String? @db.VarChar(512) @map("Medida")
+  linea      String? @db.VarChar(100) @map("Linea")
+  precioC    Float?  @map("Precio C")
+  precioB    Float?  @map("Precio B")
+  precioA    Float?  @map("Precio A")
+  modificado String? @db.VarChar(50) @map("Modificado")
+
+  // Relación 1:1 con Product
+  productRef Product @relation(fields: [codigo], references: [codigo], onDelete: Cascade)
+
+  @@map("Precio_Unitario")
+}
+
+model GarantiaMarca {
+  id        Int      @id @default(autoincrement())
+  marca     String   @unique
+  meses     Int      @default(6)
+  mensaje   String   @db.VarChar(500)
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("garantias_marca")
 }
 
 model Banner {
@@ -122,7 +139,7 @@ model Banner {
   titulo      String
   imagen_url  String
   producto_id Int?     @map("producto_id")
-  producto    Product? @relation(fields: [producto_id], references: [id], onDelete: SetNull)
+  producto    Product? @relation(fields: [producto_id], references: [codigo], onDelete: SetNull)
 
   @@map("banners")
   @@index([producto_id])
@@ -206,7 +223,7 @@ model ServiceOrder {
   fecha_actualizacion DateTime           @updatedAt
 
   user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product             Product?           @relation(fields: [productId], references: [id])
+  product             Product?           @relation(fields: [productId], references: [codigo])
 
   @@map("ordenes_servicio")
 }
@@ -262,7 +279,7 @@ model ProductImage {
   version_optimizada Boolean  @default(false)
   fecha_subida       DateTime @default(now())
   
-  producto           Product  @relation(fields: [producto_id], references: [id], onDelete: Cascade)
+  producto           Product  @relation(fields: [producto_id], references: [codigo], onDelete: Cascade)
   
   @@map("imagenes")
   @@index([producto_id])
@@ -280,7 +297,7 @@ model Promotion {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   
-  producto          Product  @relation(fields: [producto_id], references: [id], onDelete: Cascade)
+  producto          Product  @relation(fields: [producto_id], references: [codigo], onDelete: Cascade)
   
   @@map("promociones")
   @@index([producto_id])
@@ -358,4 +375,85 @@ model PasswordResetToken {
   @@index([usuario_id])
   @@index([usado])
   @@index([fecha_expiracion])
+}
+
+// Modelos para Analytics y Tracking de Visitas
+
+model PageView {
+  id            Int      @id @default(autoincrement())
+  ruta          String   // Ruta de la página visitada ej: /home, /productos
+  ip_address    String?
+  user_agent    String?  @db.Text
+  referrer      String?  @db.Text
+  session_id    String?  // ID de sesión para tracking de usuarios únicos
+  usuario_id    Int?     // Si el usuario está autenticado
+  fecha_visita  DateTime @default(now())
+  
+  @@map("page_views")
+  @@index([ruta])
+  @@index([fecha_visita])
+  @@index([session_id])
+  @@index([usuario_id])
+}
+
+model ProductView {
+  id            Int      @id @default(autoincrement())
+  producto_id   Int
+  producto_nombre String?
+  marca         String?
+  ip_address    String?
+  user_agent    String?  @db.Text
+  session_id    String?  // ID de sesión para contar usuarios únicos
+  usuario_id    Int?     // Si el usuario está autenticado
+  fecha_visita  DateTime @default(now())
+  
+  @@map("product_views")
+  @@index([producto_id])
+  @@index([marca])
+  @@index([fecha_visita])
+  @@index([session_id])
+  @@index([usuario_id])
+}
+
+model BrandView {
+  id            Int      @id @default(autoincrement())
+  marca         String
+  ip_address    String?
+  user_agent    String?  @db.Text
+  session_id    String?  // ID de sesión para contar usuarios únicos
+  usuario_id    Int?     // Si el usuario está autenticado
+  fecha_visita  DateTime @default(now())
+  
+  @@map("brand_views")
+  @@index([marca])
+  @@index([fecha_visita])
+  @@index([session_id])
+  @@index([usuario_id])
+}
+
+// =============================================
+// Modelo para Auditoría (historial de acciones del panel admin)
+// =============================================
+model AuditLog {
+  id              Int      @id @default(autoincrement())
+  usuario_id      Int?
+  usuario_nombre  String   // nombre completo del usuario
+  usuario_username String  // username del usuario
+  usuario_rol     String   // rol en el momento de la acción
+  accion          String   // CREATE | UPDATE | DELETE | LOGIN | LOGOUT | OTHER
+  modulo          String   // productos | promociones | banners | logo | usuarios | permisos | garantias | personalizacion | video
+  descripcion     String   @db.Text // descripción legible de la acción
+  detalle         Json?    // datos adicionales (ej: valores antes/después)
+  ip_address      String?
+  user_agent      String?  @db.Text
+  exitoso         Boolean  @default(true)
+  error_detalle   String?  @db.Text
+  fecha           DateTime @default(now())
+
+  @@map("audit_logs")
+  @@index([usuario_id])
+  @@index([modulo])
+  @@index([accion])
+  @@index([fecha])
+  @@index([usuario_username])
 }

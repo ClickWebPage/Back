@@ -323,7 +323,7 @@ export class AuthService {
 
     // Crear URL de reseteo
     const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://192.168.2.117:8080';
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:8080';
     const resetUrl = `${frontendUrl}/restablecer-password?token=${resetToken}`;
 
     // Enviar email con el enlace de recuperación

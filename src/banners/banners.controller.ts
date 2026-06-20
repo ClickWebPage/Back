@@ -15,9 +15,8 @@ import { BannersService } from './banners.service';
 import { CreateBannerDto } from './dto/create-banner.dto';
 import { UpdateBannerDto } from './dto/update-banner.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { Role } from '../auth/roles.enum';
+import { PermisoTemporalGuard } from '../auth/guards/permiso-temporal.guard';
+import { RequierePermiso } from '../auth/decorators/permiso-temporal.decorator';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Banners')
@@ -39,19 +38,19 @@ export class BannersController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, PermisoTemporalGuard)
+  @RequierePermiso('banners')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Crear un nuevo banner (solo administradores)' })
+  @ApiOperation({ summary: 'Crear un nuevo banner (administradores o vendedores con permiso)' })
   async create(@Body() createBannerDto: CreateBannerDto) {
     return await this.bannersService.create(createBannerDto);
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, PermisoTemporalGuard)
+  @RequierePermiso('banners')
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Actualizar un banner existente (solo administradores)' })
+  @ApiOperation({ summary: 'Actualizar un banner existente (administradores o vendedores con permiso)' })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateBannerDto: UpdateBannerDto,
@@ -60,11 +59,11 @@ export class BannersController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, PermisoTemporalGuard)
+  @RequierePermiso('banners')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar un banner (solo administradores)' })
+  @ApiOperation({ summary: 'Eliminar un banner (administradores o vendedores con permiso)' })
   async remove(@Param('id', ParseIntPipe) id: number) {
     await this.bannersService.remove(id);
   }

@@ -1,47 +1,42 @@
-import { IsIn, IsNumber, IsOptional, IsString, IsBoolean } from 'class-validator';
+import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 export class FilterProductsDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  minPrice?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  maxPrice?: number;
-
   @IsOptional()
   @IsString()
   marca?: string;
 
   @IsOptional()
   @IsString()
-  color?: string;
+  bodega?: string;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 
   @IsOptional()
   @IsString()
   categoria?: string;
 
   @IsOptional()
-  @IsString()
-  subcategoria?: string;
+  @Type(() => Number)
+  @IsNumber()
+  minCosto?: number;
 
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
-  @IsBoolean()
-  destacado?: boolean;
+  @Type(() => Number)
+  @IsNumber()
+  maxCosto?: number;
 
   @IsOptional()
-  @IsString()
-  search?: string;
+  @Transform(({ value }) => value ? parseInt(value, 10) : 1)
+  @IsNumber()
+  @Min(1)
+  page?: number;
 
-  // Rangos predefinidos de precio:
-  //  - "low":   menor a 100
-  //  - "mid":   de 101 a 399
-  //  - "high":  desde 400 en adelante
   @IsOptional()
-  @IsIn(['low', 'mid', 'high'])
-  priceRange?: 'low' | 'mid' | 'high';
+  @Transform(({ value }) => value ? parseInt(value, 10) : undefined)
+  @IsNumber()
+  @Min(1)
+  limit?: number;
 }

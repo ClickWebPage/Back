@@ -18,34 +18,67 @@ export class ProductsController {
     return await this.productsService.create(createProductDto);
   }
 
-  @Get()
-  async findAll(@Query() filters: FilterProductsDto) {
-    return await this.productsService.findAll(filters);
+  // Endpoint para admin - muestra TODOS los productos sin filtros de stock/precio
+  @Get('admin/todos')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.VENDEDOR)
+  async findAllAdmin(@Query() filters: FilterProductsDto) {
+    console.log('=== PRODUCTS CONTROLLER - findAllAdmin (sin filtros de stock) ===');
+    return await this.productsService.findAllAdmin(filters);
   }
 
-  @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    const producto = await this.productsService.findOne(id);
+  @Get()
+  async findAll(@Query() filters: FilterProductsDto) {
+    try {
+      console.log('=== PRODUCTS CONTROLLER - findAll ===');
+      console.log('Received filters:', JSON.stringify(filters));
+      const result = await this.productsService.findAll(filters);
+      console.log('Controller result count:', result.data.length, 'of', result.total);
+      return result;
+    } catch (error) {
+      console.error('=== CONTROLLER ERROR ===');
+      console.error('Error in controller:', error);
+      throw error;
+    }
+  }
+
+  @Get('marcas/lista')
+  async getMarcas() {
+    return await this.productsService.getMarcas();
+  }
+
+  @Get('categorias/lista')
+  async getCategorias() {
+    return await this.productsService.getCategorias();
+  }
+
+  @Get(':codigo')
+  async findOne(@Param('codigo', ParseIntPipe) codigo: number) {
+    const producto = await this.productsService.findOne(codigo);
     if (!producto) {
-      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+      throw new NotFoundException(`Producto con código ${codigo} no encontrado`);
     }
     return producto;
   }
 
-  @Put(':id')
+  @Put(':codigo')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.VENDEDOR)
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('codigo', ParseIntPipe) codigo: number,
     @Body() updateProductDto: UpdateProductDto,
   ) {
-    return await this.productsService.update(id, updateProductDto);
+    console.log('=== CONTROLLER UPDATE - Codigo:', codigo, '===');
+    console.log('=== CONTROLLER UPDATE - Body:', JSON.stringify(updateProductDto) ,'===');
+    return await this.productsService.update(codigo, updateProductDto);
   }
 
-  @Delete(':id')
+  @Delete(':codigo')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return await this.productsService.remove(id);
+  async remove(@Param('codigo', ParseIntPipe) codigo: number) {
+    console.log('=== CONTROLLER DELETE - Codigo:', codigo, '===');
+    console.log('=== ATENCIÓN: Se está eliminando un producto ===');
+    return await this.productsService.remove(codigo);
   }
 }

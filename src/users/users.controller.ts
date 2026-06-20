@@ -19,6 +19,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateUserAdminDto } from './dto/create-user-admin.dto';
 import { UpdateUserAdminDto } from './dto/update-user-admin.dto';
+import { ResetPasswordAdminDto } from './dto/reset-password-admin.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Role } from '../auth/roles.enum';
@@ -217,6 +218,33 @@ export class UsersController {
 
     return {
       mensaje: 'Usuario eliminado exitosamente',
+    };
+  }
+
+  /**
+   * Resetear contraseña de un usuario (solo rol ADMIN)
+   */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @Patch(':id/reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() resetPasswordDto: ResetPasswordAdminDto,
+  ) {
+    const user = await this.usersService.resetPasswordByAdmin(
+      id,
+      resetPasswordDto.nuevaPassword,
+    );
+
+    return {
+      mensaje: 'Contraseña restablecida exitosamente',
+      usuario: {
+        id: user.id,
+        nombre: user.nombre,
+        apellido: user.apellido,
+        username: user.username,
+      },
     };
   }
 }

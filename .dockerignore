@@ -1,0 +1,41 @@
+# Archivos y carpetas a ignorar en el build de Docker
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+dist
+coverage
+*.md
+!README.md
+test
+*.log
+.DS_Store
+Thumbs.db
+
+# Archivos de desarrollo
+*.spec.ts
+*.test.ts
+jest.config.js
+tsconfig.build.tsbuildinfo
+
+# Scripts de desarrollo específicos
+*.ps1
+*.http
+*.sql
+test-*.js
+check-*.js
+update-*.js
+generate-*.js
+migrate-*.ps1
+verificar-*.js
+frontend-*.js
+deploy-to-vps.sh
+setup-database.sh
+configurar-firewall.ps1
+
+# Asegurar que seeds/ se incluya (no ignorar)
+!seeds/
+!seeds/**

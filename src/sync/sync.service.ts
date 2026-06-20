@@ -52,19 +52,17 @@ export class ErpSyncService {
       await this.prisma.$transaction(async (tx) => {
         for (const row of updates) {
           await tx.product.upsert({
-            where: { erpId: row.ID_ERP },
+            where: { codigo: row.ID_ERP },
             update: {
-              nombre_producto: row.NOMBRE,
-              precio: row.PRECIO,
-              stock: row.STOCK,
+              producto: row.NOMBRE,
+              costoTotal: row.PRECIO,
+              existenciaTotal: String(row.STOCK),
             },
             create: {
-              erpId: row.ID_ERP,
-              nombre_producto: row.NOMBRE,
-              precio: row.PRECIO,
-              stock: row.STOCK,
-              descripcion: row.DESCRIPCION || '', // Valor por defecto si no viene del ERP
-              imagen_url: row.IMAGEN_URL || '',   // Valor por defecto
+              codigo: row.ID_ERP,
+              producto: row.NOMBRE,
+              costoTotal: row.PRECIO,
+              existenciaTotal: String(row.STOCK),
             },
           });
         }

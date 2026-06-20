@@ -195,4 +195,335 @@ export class AnalyticsService {
       return 'Cámaras';
     return 'Accesorios';
   }
+
+  // =========================================
+  // Métodos para Tracking de Visitas
+  // =========================================
+
+  async trackPageView(data: {
+    ruta: string;
+    ip_address?: string;
+    user_agent?: string;
+    referrer?: string;
+    session_id?: string;
+    usuario_id?: number;
+  }) {
+    return this.prisma.pageView.create({
+      data: {
+        ruta: data.ruta,
+        ip_address: data.ip_address,
+        user_agent: data.user_agent,
+        referrer: data.referrer,
+        session_id: data.session_id,
+        usuario_id: data.usuario_id,
+      },
+    });
+  }
+
+  async trackProductView(data: {
+    producto_id: number;
+    producto_nombre?: string;
+    marca?: string;
+    ip_address?: string;
+    user_agent?: string;
+    session_id?: string;
+    usuario_id?: number;
+  }) {
+    return this.prisma.productView.create({
+      data: {
+        producto_id: data.producto_id,
+        producto_nombre: data.producto_nombre,
+        marca: data.marca,
+        ip_address: data.ip_address,
+        user_agent: data.user_agent,
+        session_id: data.session_id,
+        usuario_id: data.usuario_id,
+      },
+    });
+  }
+
+  async trackBrandView(data: {
+    marca: string;
+    ip_address?: string;
+    user_agent?: string;
+    session_id?: string;
+    usuario_id?: number;
+  }) {
+    return this.prisma.brandView.create({
+      data: {
+        marca: data.marca,
+        ip_address: data.ip_address,
+        user_agent: data.user_agent,
+        session_id: data.session_id,
+        usuario_id: data.usuario_id,
+      },
+    });
+  }
+
+  // =========================================
+  // Métodos para Obtener Métricas de Visitas
+  // =========================================
+
+  /**
+   * Obtiene los IDs de usuarios que tienen alguno de los roles indicados.
+   * Se usa para incluir/excluir visitas de staff en los reportes.
+   */
+  private async getUserIdsByRoles(roles: string[]): Promise<number[]> {
+    if (!roles || roles.length === 0) return [];
+    const users = await this.prisma.user.findMany({
+      where: { rol: { in: roles } },
+      select: { id: true },
+    });
+    return users.map((u) => u.id);
+  }
+
+  /**
+   * Construye el filtro de usuario_id basado en los roles a excluir/incluir.
+   * excluirRoles: excluye visitas de usuarios con esos roles (ej: admin, vendedor, tecnico)
+   * soloRoles: sólo incluye visitas de usuarios con esos roles
+   * Si ninguno se proporciona, no aplica filtro por rol.
+   */
+  private async buildRoleFilter(
+    excluirRoles?: string[],
+    soloRoles?: string[],
+  ): Promise<object> {
+    if (soloRoles && soloRoles.length > 0) {
+      const ids = await this.getUserIdsByRoles(soloRoles);
+      return { usuario_id: { in: ids } };
+    }
+    if (excluirRoles && excluirRoles.length > 0) {
+      const ids = await this.getUserIdsByRoles(excluirRoles);
+      if (ids.length === 0) return {};
+      return { NOT: { usuario_id: { in: ids } } };
+    }
+    return {};
+  }
+
+  async getPageViewsStats(
+    periodo: string = '30dias',
+    excluirRoles?: string[],
+    soloRoles?: string[],
+  ) {
+    const startDate = this.getStartDate(periodo);
+    const roleFilter = await this.buildRoleFilter(excluirRoles, soloRoles);
+
+    const baseWhere = {
+      fecha_visita: { gte: startDate },
+      ...roleFilter,
+    };
+
+    const totalViews = await this.prisma.pageView.count({
+      where: baseWhere,
+    });
+
+    const uniqueVisitors = await this.prisma.pageView.groupBy({
+      by: ['session_id'],
+      where: {
+        ...baseWhere,
+        session_id: { not: null },
+      },
+    });
+
+    const topPages = await this.prisma.pageView.groupBy({
+      by: ['ruta'],
+      _count: { id: true },
+      where: baseWhere,
+      orderBy: {
+        _count: { id: 'desc' },
+      },
+      take: 10,
+    });
+
+    const viewsByDate = await this.prisma.pageView.findMany({
+      where: baseWhere,
+      select: {
+        fecha_visita: true,
+      },
+    });
+
+    const groupedByDate = this.groupViewsByPeriod(viewsByDate, periodo);
+
+    return {
+      totalViews,
+      uniqueVisitors: uniqueVisitors.length,
+      topPages: topPages.map((p) => ({
+        ruta: p.ruta,
+        visitas: p._count.id,
+      })),
+      viewsByDate: {
+        labels: groupedByDate.map((g) => g.label),
+        visitas: groupedByDate.map((g) => g.count),
+      },
+    };
+  }
+
+  async getProductViewsStats(
+    periodo: string = '30dias',
+    limite: number = 20,
+    excluirRoles?: string[],
+    soloRoles?: string[],
+  ) {
+    const startDate = this.getStartDate(periodo);
+    const roleFilter = await this.buildRoleFilter(excluirRoles, soloRoles);
+
+    const baseWhere = {
+      fecha_visita: { gte: startDate },
+      ...roleFilter,
+    };
+
+    const topProducts = await this.prisma.productView.groupBy({
+      by: ['producto_id', 'producto_nombre'],
+      _count: { id: true },
+      where: baseWhere,
+      orderBy: {
+        _count: { id: 'desc' },
+      },
+      take: limite,
+    });
+
+    const totalViews = await this.prisma.productView.count({
+      where: baseWhere,
+    });
+
+    return {
+      totalViews,
+      topProducts: topProducts.map((p) => ({
+        producto_id: p.producto_id,
+        producto_nombre: p.producto_nombre || `Producto ${p.producto_id}`,
+        visitas: p._count.id,
+      })),
+    };
+  }
+
+  async getBrandViewsStats(
+    periodo: string = '30dias',
+    limite: number = 20,
+    excluirRoles?: string[],
+    soloRoles?: string[],
+  ) {
+    const startDate = this.getStartDate(periodo);
+    const roleFilter = await this.buildRoleFilter(excluirRoles, soloRoles);
+
+    const baseWhere = {
+      fecha_visita: { gte: startDate },
+      ...roleFilter,
+    };
+
+    const topBrands = await this.prisma.brandView.groupBy({
+      by: ['marca'],
+      _count: { id: true },
+      where: {
+        ...baseWhere,
+        marca: { not: undefined as unknown as string },
+      },
+      orderBy: {
+        _count: { id: 'desc' },
+      },
+      take: limite,
+    });
+
+    const totalViews = await this.prisma.brandView.count({
+      where: baseWhere,
+    });
+
+    return {
+      totalViews,
+      topBrands: topBrands.map((b) => ({
+        marca: b.marca,
+        visitas: (b._count as { id: number }).id,
+      })),
+    };
+  }
+
+  async getVisitorsOverview(
+    periodo: string = '30dias',
+    excluirRoles?: string[],
+    soloRoles?: string[],
+  ) {
+    const startDate = this.getStartDate(periodo);
+    const roleFilter = await this.buildRoleFilter(excluirRoles, soloRoles);
+
+    const baseWhere = {
+      fecha_visita: { gte: startDate },
+      ...roleFilter,
+    };
+
+    const pageViews = await this.prisma.pageView.count({
+      where: baseWhere,
+    });
+
+    const productViews = await this.prisma.productView.count({
+      where: baseWhere,
+    });
+
+    const brandViews = await this.prisma.brandView.count({
+      where: baseWhere,
+    });
+
+    const uniqueVisitors = await this.prisma.pageView.groupBy({
+      by: ['session_id'],
+      where: {
+        ...baseWhere,
+        session_id: { not: null },
+      },
+    });
+
+    return {
+      periodo,
+      totalPageViews: pageViews,
+      totalProductViews: productViews,
+      totalBrandViews: brandViews,
+      uniqueVisitors: uniqueVisitors.length,
+      totalInteractions: pageViews + productViews + brandViews,
+    };
+  }
+
+  // =========================================
+  // Métodos Auxiliares
+  // =========================================
+
+  private getStartDate(periodo: string): Date {
+    const now = new Date();
+    switch (periodo) {
+      case '7dias':
+        return new Date(now.setDate(now.getDate() - 7));
+      case '30dias':
+        return new Date(now.setDate(now.getDate() - 30));
+      case '3meses':
+        return new Date(now.setMonth(now.getMonth() - 3));
+      case 'año':
+        return new Date(now.setFullYear(now.getFullYear() - 1));
+      default:
+        return new Date(now.setDate(now.getDate() - 30));
+    }
+  }
+
+  private groupViewsByPeriod(
+    views: { fecha_visita: Date }[],
+    periodo: string,
+  ) {
+    const groupBy = periodo === '7dias' || periodo === '30dias' ? 'day' : 'month';
+    const grouped = new Map<string, number>();
+
+    views.forEach((view) => {
+      const date = new Date(view.fecha_visita);
+      let key: string;
+
+      if (groupBy === 'day') {
+        key = `${date.getDate()}/${date.getMonth() + 1}`;
+      } else {
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        key = months[date.getMonth()];
+      }
+
+      const current = grouped.get(key) || 0;
+      grouped.set(key, current + 1);
+    });
+
+    return Array.from(grouped.entries()).map(([label, count]) => ({
+      label,
+      count,
+    }));
+  }
 }
+

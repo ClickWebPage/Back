@@ -1,4 +1,3 @@
-// src/cors/cors.controller.ts
 import { Controller, Get, Req, Res, Header } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
